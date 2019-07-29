@@ -1,5 +1,5 @@
 ﻿using System.Data;
-using System.Data.SQLite;
+using Mono.Data.Sqlite;
 using System.IO;
 
 namespace com.IntemsLab.Common
@@ -19,14 +19,14 @@ namespace com.IntemsLab.Common
         {
             if (!File.Exists(_databaseName))
             {
-                SQLiteConnection.CreateFile(_databaseName);
+                SqliteConnection.CreateFile(_databaseName);
                 //Create();
             }
             // create tables
-            using (var conn = new SQLiteConnection(Prefix + _databaseName))
+            using (var conn = new SqliteConnection(Prefix + _databaseName))
             {
                 conn.Open();
-                using (var cmd = new SQLiteCommand(conn))
+                using (var cmd = new SqliteCommand(conn))
                 {
                     cmd.CommandText = @"CREATE TABLE [User] (
                                             [id] integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -53,10 +53,10 @@ namespace com.IntemsLab.Common
 
         public void Clear()
         {
-            using (var conn = new SQLiteConnection(Prefix + _databaseName))
+            using (var conn = new SqliteConnection(Prefix + _databaseName))
             {
                 conn.Open();
-                using (var cmd = new SQLiteCommand(conn))
+                using (var cmd = new SqliteCommand(conn))
                 {
                     cmd.CommandText = "DROP TABLE [Purchase]";
                     cmd.CommandType = CommandType.Text;
