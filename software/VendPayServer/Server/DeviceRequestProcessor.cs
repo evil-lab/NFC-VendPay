@@ -45,7 +45,8 @@ namespace com.IntemsLab.Server
             _parser = new RequestParser();
             _builder = new ResponseBuilder();
 
-            _log = LogManager.GetCurrentClassLogger();
+            //_log = LogManager.GetCurrentClassLogger();
+            _log = LogManager.GetLogger("fileLogger");
 
             _activeUserIds = new List<int>();
         }
@@ -102,6 +103,7 @@ namespace com.IntemsLab.Server
             lock (_sessionLocker)
             {
                 var user = _helper.GetUser(card);
+                _log.Debug("Card ID: {0}", card.CardId);
                 if (user == null)
                 {
                     e.Response = _builder.BuildError(e.Request, (int)CshlSessionError.UserNotRegistered);

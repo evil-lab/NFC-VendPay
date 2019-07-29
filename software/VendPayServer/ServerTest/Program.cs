@@ -13,7 +13,8 @@ namespace ServerTest
         private static void SendMessage(byte[] buffer)
         {
             var client = new TcpClient();
-            client.Connect(IPAddress.Loopback, 6767);
+            //client.Connect(IPAddress.Loopback, 6767);
+            client.Connect("192.168.88.51", 6767);
             using (var stream = client.GetStream())
             {
                 stream.Write(buffer, 0, buffer.Length);
@@ -62,6 +63,9 @@ namespace ServerTest
 
         static void Main(string[] args)
         {
+            TestUserBalance();
+
+            /*
             var service = new DatabaseHelper("vend_users.db");
             service.Start();
 
@@ -82,6 +86,7 @@ namespace ServerTest
             user = service.GetUser(card2);
             Console.WriteLine(user);
             Console.ReadKey();
+            */           
         }
     }
 }
