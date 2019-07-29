@@ -103,20 +103,25 @@ namespace com.IntemsLab.Server
             lock (_sessionLocker)
             {
                 var user = _helper.GetUser(card);
-                _log.Debug("Card ID: {0}", card.CardId);
-                if (user == null)
+                if(user != null)
                 {
+                    _log.Debug("User ID:{0}  |  CardID:{1}", user.Id, user.AssignedCard);
+                    if (!_activeUserIds.Contains(user.Id))
+                    {
+                        _activeUserIds.Add(user.Id);
+                        e.Response = _builder.BuildUserInfo(e.Request, user);
+                    }
+                    else
+                    {
+                        e.Response = _builder.BuildError(e.Request, (int)CshlSessionError.SessionDuplication);
+                    }
+                }
+                else 
+                {
+                    _log.Debug("CardID:{0} not assigned.", card.CardId);
+
                     e.Response = _builder.BuildError(e.Request, (int)CshlSessionError.UserNotRegistered);
                     return;
-                }
-                if (!_activeUserIds.Contains(user.Id))
-                {
-                    _activeUserIds.Add(user.Id);
-                    e.Response = _builder.BuildUserInfo(e.Request, user);
-                }
-                else
-                {
-                    e.Response = _builder.BuildError(e.Request, (int) CshlSessionError.SessionDuplication);
                 }
             }
         }
