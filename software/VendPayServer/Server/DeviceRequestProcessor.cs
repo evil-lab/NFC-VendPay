@@ -13,15 +13,15 @@ namespace com.IntemsLab.Server
     enum CshlProtocolCommands
     {
         AmountReq = 0x01,
-        SaleReq = 0x02,
+        SaleReq   = 0x02,
         CancelReq = 0x03
     }
 
     enum CshlSessionError
     {
-        UserNotRegistered = 0x03,
+        UserNotRegistered  = 0x03,
         SessionDuplication = 0x05,
-        NotEnougthMoney = 0x02
+        NotEnougthMoney    = 0x02
     }
 
     class DeviceRequestProcessor
