@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SQLite;
+//using System.Data.SQLite;
 using System.IO;
+using Mono.Data.Sqlite;
 using com.IntemsLab.Common.Model;
 using com.IntemsLab.Common.Model.Interfaces;
 
@@ -13,7 +14,8 @@ namespace com.IntemsLab.Common
         private readonly string _databaseName = "vend_users.db";
         private const string ConnStringTemplate = "Data Source={0};Version=3;PRAGMA quick_check= NORMAL;";
 
-        private SQLiteConnection _connection;
+        //private SQLiteConnection _connection;
+        private SqliteConnection _connection;
 
         public DatabaseHelper(string dbName)
         {
@@ -27,14 +29,15 @@ namespace com.IntemsLab.Common
                 CreateDatabase();
             }
             var connectionString = String.Format(ConnStringTemplate, _databaseName);
-            _connection = new SQLiteConnection(connectionString);
+            //_connection = new SQLiteConnection(connectionString);
+            _connection = new SqliteConnection(connectionString);
             _connection.Open();
         }
 
         public User AddUser(User user)
         {
             User result;
-            using (var cmd = new SQLiteCommand(_connection))
+            using (var cmd = new SqliteCommand(_connection))
             {
                 if (IsCardExists(user.AssignedCard)) return null;
 
@@ -53,7 +56,7 @@ namespace com.IntemsLab.Common
 
         public void DeleteUser(ChipCard card)
         {
-            using (var cmd = new SQLiteCommand(_connection))
+            using (var cmd = new SqliteCommand(_connection))
             {
                 var sqlTemplate = "DELETE FROM [User] WHERE cardId LIKE '{0}'";
                 string sCmd = String.Format(sqlTemplate, card.CardId);
@@ -67,7 +70,7 @@ namespace com.IntemsLab.Common
         public User GetUser(ChipCard card)
         {
             User result = null;
-            using (var cmd = new SQLiteCommand(_connection))
+            using (var cmd = new SqliteCommand(_connection))
             {
                 var sqlTemplate = "SELECT * FROM User WHERE cardId LIKE '{0}'";
                 var sCmd = String.Format(sqlTemplate, card.CardId);
@@ -100,7 +103,7 @@ namespace com.IntemsLab.Common
         public User GetUserById(int anUserId)
         {
             User result = null;
-            using (var cmd = new SQLiteCommand(_connection))
+            using (var cmd = new SqliteCommand(_connection))
             {
                 var sqlTemplate = "SELECT * FROM User WHERE Id = {0}";
                 var sCmd = String.Format(sqlTemplate, anUserId);
@@ -193,7 +196,7 @@ namespace com.IntemsLab.Common
             var result = false;
             if (_connection != null)
             {
-                using (var cmd = new SQLiteCommand(_connection))
+                using (var cmd = new SqliteCommand(_connection))
                 {
                     const string sqlQryTempl = @"SELECT id FROM User WHERE cardId LIKE '{0}'";
                     cmd.CommandText = String.Format(sqlQryTempl, card.CardId);
@@ -207,7 +210,7 @@ namespace com.IntemsLab.Common
 
         private void UpdateAmount(int userId, int amount)
         {
-            using (var cmd = new SQLiteCommand(_connection))
+            using (var cmd = new SqliteCommand(_connection))
             {
                 const string sqlTemplate = "UPDATE [User] SET [amount] = {1} WHERE id = {0}";
                 var sCmd = String.Format(sqlTemplate, userId, amount);
@@ -220,7 +223,7 @@ namespace com.IntemsLab.Common
 
         private void SavePurchase(int userId, int value, int cellId)
         {
-            using (var cmd = new SQLiteCommand(_connection))
+            using (var cmd = new SqliteCommand(_connection))
             {
                 const string sqlTemplate = "INSERT INTO [Purchase] ([userId], [date], [value], [cellId])" +
                                            "VALUES ({0}, '{1}', {2}, {3})";
@@ -234,11 +237,11 @@ namespace com.IntemsLab.Common
 
         private void CreateDatabase()
         {
-            SQLiteConnection.CreateFile(_databaseName);
-            using (var conn = new SQLiteConnection("Data Source = " + _databaseName))
+            SqliteConnection.CreateFile(_databaseName);
+            using (var conn = new SqliteConnection("Data Source = " + _databaseName + ";Version=3;"))
             {
                 conn.Open();
-                using (var cmd = new SQLiteCommand(conn))
+                using (var cmd = new SqliteCommand(conn))
                 {
                     cmd.CommandText = @"CREATE TABLE [User] (
                                             [id] integer PRIMARY KEY AUTOINCREMENT NOT NULL,

@@ -13,14 +13,16 @@ namespace com.IntemsLab.Server
             {
                 var devProc = new DeviceRequestProcessor(6767, "vend.db");
                 devProc.Start();
+                while (true)
+                {
+                    System.Threading.Thread.Sleep(500);
+                }
             }
             catch (Exception e)
             {
                 log.Fatal(e.Message);
                 log.Fatal(e.StackTrace);
             }
-
-            Console.ReadKey();
         }
     }
 }
