@@ -43,6 +43,9 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="Csv">
+      <HintPath>..\packages\Csv.1.0.40\lib\net40\Csv.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DeviceRequestProcessor.cs" />
