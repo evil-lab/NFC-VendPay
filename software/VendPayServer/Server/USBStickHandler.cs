@@ -6,6 +6,7 @@ using Csv;
 using com.IntemsLab.Common;
 using com.IntemsLab.Common.Model;
 using NLog;
+using System.Text.RegularExpressions;
 
 namespace com.IntemsLab.Server
 {
@@ -46,38 +47,56 @@ namespace com.IntemsLab.Server
                 }
                 if(File.Exists(balanceFile))
                 {
+                    Configuring?.Invoke(this, EventArgs.Empty);
                     GetBalance(balanceFile);
+                    Configured?.Invoke(this, EventArgs.Empty);
                 }
                 System.Threading.Thread.Sleep(1000);
             }
         }
+
+        public bool IsValidTime(string t)
+        {
+            Regex checker = new Regex(@"^([01]\d?|2[0-4]):[0-5]\d(:[0-5]\d)?$");
+            return checker.IsMatch(t);
+        }
+
 
         private void GetBalance(string balanceFile)
         {
             var csv = File.ReadAllText(balanceFile);
             foreach (var line in CsvReader.ReadFromText(csv))
             {
-                var balance = line["balance"];
+                var s_balance = line["balance"];
                 var time = line["time"];
-                _log.Debug("read: balance: {0}, time: {1}", balance, time);
-                Tuple<int, string> lastConf = _dbHelper.GetLastConfig();
-
-                if (lastConf == null) 
+                // check balance
+                int balance;
+                if (Int32.TryParse(s_balance, out balance) && IsValidTime(time)) 
                 {
-                    _log.Debug("inserted: balance: {0}, time: {1}", balance, time);
-                    _dbHelper.SaveConfig(Int32.Parse(balance), time);
+                    _log.Debug("read: balance: {0}, time: {1}", balance, time);
+                    Tuple<int, string> lastConf = _dbHelper.GetLastConfig();
+
+                    if (lastConf == null)
+                    {
+                        _log.Debug("inserted: balance: {0}, time: {1}", balance, time);
+                        _dbHelper.SaveConfig(balance, time);
+                    }
+                    else
+                    {
+                        if (!(lastConf.Item1 == balance && lastConf.Item2 == time))
+                        {
+                            _log.Debug("inserted: balance: {0}, time: {1}", lastConf.Item1, lastConf.Item2);
+                            _dbHelper.SaveConfig(balance, time);
+                        }
+                        else
+                        {
+                            _log.Debug("already in: balance: {0}, time: {1}", lastConf.Item1, lastConf.Item2);
+                        }
+                    }
                 }
                 else
                 {
-                    if (!(lastConf.Item1 == Int32.Parse(balance) && lastConf.Item2 == time))
-                    {
-                        _log.Debug("inserted: balance: {0}, time: {1}", lastConf.Item1, lastConf.Item2);
-                        _dbHelper.SaveConfig(Int32.Parse(balance), time);
-                    }
-                    else 
-                    {
-                        _log.Debug("already in: balance: {0}, time: {1}", lastConf.Item1, lastConf.Item2);
-                    }
+                    _log.Debug("incorrect format: balance: {0}, time: {1}", s_balance, time);
                 }
             }
         }
