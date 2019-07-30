@@ -57,8 +57,12 @@ namespace com.IntemsLab.Server
 
         public bool IsValidTime(string t)
         {
-            Regex checker = new Regex(@"^([01]\d?|2[0-4]):[0-5]\d(:[0-5]\d)?$");
-            return checker.IsMatch(t);
+            return System.Text.RegularExpressions.Regex.IsMatch(t, @"^([01]\d?|2[0-4]):[0-5]\d(:[0-5]\d)?$");
+        }
+
+        public bool OnlyHexInString(string test)
+        {
+            return System.Text.RegularExpressions.Regex.IsMatch(test, @"\A\b[0-9a-fA-F]+\b\Z");
         }
 
 
@@ -96,7 +100,7 @@ namespace com.IntemsLab.Server
                 }
                 else
                 {
-                    _log.Debug("incorrect format: balance: {0}, time: {1}", s_balance, time);
+                    _log.Debug("INCORRECT balance: {0}, time: {1}", s_balance, time);
                 }
             }
         }
@@ -107,25 +111,31 @@ namespace com.IntemsLab.Server
             foreach (var line in CsvReader.ReadFromText(csv))
             {
                 var card_id = line["card_id"];
-
-                ChipCard card = new ChipCard(card_id.ToUpper().Trim());
-                var usr = _dbHelper.GetUser(card);
-                if (usr != null) 
+                if (OnlyHexInString(card_id))
                 {
-                    _log.Debug("User for: {0} already in db", card_id);
+                    ChipCard card = new ChipCard(card_id.ToUpper().Trim());
+                    var usr = _dbHelper.GetUser(card);
+                    if (usr != null)
+                    {
+                        _log.Debug("User for: {0} already in db", card_id);
+                    }
+                    else
+                    {
+                        _log.Debug("No user for: {0}", card_id);
+                        var newUser = _dbHelper.AddUser(new User() { AssignedCard = card, UserName = card.CardId });
+                        if (newUser.Id > 0)
+                        {
+                            _log.Debug("User for: {0} added into DB", card_id);
+                        }
+                        else
+                        {
+                            _log.Debug("User for: {0} NOT added into DB", card_id);
+                        }
+                    }
                 }
-                else
+                else 
                 {
-                    _log.Debug("No user for: {0}", card_id);
-                    var newUser = _dbHelper.AddUser(new User() { AssignedCard = card, UserName = card.CardId });
-                    if (newUser.Id > 0)
-                    {
-                        _log.Debug("User for: {0} added into DB", card_id);
-                    }
-                    else 
-                    {
-                        _log.Debug("User for: {0} NOT added into DB", card_id);
-                    }
+                    _log.Debug("INCORRECT card id: {0}", card_id);
                 }
             }
         }
