@@ -102,5 +102,10 @@ namespace com.IntemsLab.Server.Network
             this._exitFlag = true;
             this._acceptorThread.Join();
         }
+
+        public virtual bool isRunning()
+        {
+            return !_exitFlag;
+        }
     }
 }

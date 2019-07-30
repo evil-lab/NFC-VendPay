@@ -37,13 +37,48 @@ namespace com.IntemsLab.Server
             while(_isProcessing)
             {
                 var cardsFile = Path.Combine(_baseDir, _configFiles[0]);
+                var balanceFile = Path.Combine(_baseDir, _configFiles[1]);
                 if (File.Exists(cardsFile))
                 {
                     Configuring?.Invoke(this, EventArgs.Empty);
                     GetCards(cardsFile);
                     Configured?.Invoke(this, EventArgs.Empty);
                 }
+                if(File.Exists(balanceFile))
+                {
+                    GetBalance(balanceFile);
+                }
                 System.Threading.Thread.Sleep(1000);
+            }
+        }
+
+        private void GetBalance(string balanceFile)
+        {
+            var csv = File.ReadAllText(balanceFile);
+            foreach (var line in CsvReader.ReadFromText(csv))
+            {
+                var balance = line["balance"];
+                var time = line["time"];
+                _log.Debug("read: balance: {0}, time: {1}", balance, time);
+                Tuple<int, string> lastConf = _dbHelper.GetLastConfig();
+
+                if (lastConf == null) 
+                {
+                    _log.Debug("inserted: balance: {0}, time: {1}", balance, time);
+                    _dbHelper.SaveConfig(Int32.Parse(balance), time);
+                }
+                else
+                {
+                    if (!(lastConf.Item1 == Int32.Parse(balance) && lastConf.Item2 == time))
+                    {
+                        _log.Debug("inserted: balance: {0}, time: {1}", lastConf.Item1, lastConf.Item2);
+                        _dbHelper.SaveConfig(Int32.Parse(balance), time);
+                    }
+                    else 
+                    {
+                        _log.Debug("already in: balance: {0}, time: {1}", lastConf.Item1, lastConf.Item2);
+                    }
+                }
             }
         }
 

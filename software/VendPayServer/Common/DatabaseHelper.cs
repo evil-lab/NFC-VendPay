@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
+using System.Globalization;
 using Mono.Data.Sqlite;
 using com.IntemsLab.Common.Model;
 using com.IntemsLab.Common.Model.Interfaces;
@@ -226,6 +227,46 @@ namespace com.IntemsLab.Common
             return result;
         }
 
+        public void SaveConfig(int balance, string updateTime)
+        {
+            lock(_locker)
+            {
+                using (var cmd = new SqliteCommand(_connection)) {
+                    const string sqlTemplate = "INSERT INTO [Config] ([balance], [updateTime])" +
+                                              "VALUES ({0}, '{1}')";
+                    var sCmd = String.Format(sqlTemplate, balance, updateTime);
+
+                    cmd.CommandText = sCmd;
+                    cmd.CommandType = CommandType.Text;
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public Tuple<int, string> GetLastConfig()
+        {
+            Tuple<int, string> result = null;
+            lock (_locker)
+            {
+                using (var cmd = new SqliteCommand(_connection))
+                {
+                    const string sqlQryTempl = @"SELECT * FROM Config ORDER BY [id] DESC LIMIT 1";
+                    cmd.CommandText = String.Format(sqlQryTempl);
+                    cmd.CommandType = CommandType.Text;
+
+                    var reader = cmd.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        var balance = reader.GetInt32(1);
+                        var updateTime = reader.GetString(2);
+
+                        result = new Tuple<int, string>(balance, updateTime);
+                    }
+                }
+            }
+            return result;
+        }
+
         private void UpdateAmount(int userId, int amount)
         {
             lock (_locker)
@@ -285,6 +326,12 @@ namespace com.IntemsLab.Common
                                         [date] char(25),
                                         [value] integer,
                                         [cellId] integer);";
+                    cmd.ExecuteNonQuery();
+
+                    cmd.CommandText = @"CREATE TABLE [Config] (
+                                        [id] integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+                                        [balance] integer,
+                                        [updateTime] char(25));";
                     cmd.ExecuteNonQuery();
                 }
             } 
