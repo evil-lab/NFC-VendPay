@@ -17,6 +17,9 @@ namespace com.IntemsLab.Server
         private string[] _configFiles = { "cards.csv", "balance.csv" };
         private readonly Logger _log;
 
+        public event EventHandler Configuring;
+        public event EventHandler Configured;
+
         public USBStickHandler(DatabaseHelper dbHelper)
         {
             _log = LogManager.GetLogger("fileLogger");
@@ -34,10 +37,13 @@ namespace com.IntemsLab.Server
             while(_isProcessing)
             {
                 var cardsFile = Path.Combine(_baseDir, _configFiles[0]);
-                if(File.Exists(cardsFile))
+                if (File.Exists(cardsFile))
                 {
+                    Configuring?.Invoke(this, EventArgs.Empty);
                     GetCards(cardsFile);
+                    Configured?.Invoke(this, EventArgs.Empty);
                 }
+                System.Threading.Thread.Sleep(1000);
             }
         }
 
@@ -48,7 +54,7 @@ namespace com.IntemsLab.Server
             {
                 var card_id = line["card_id"];
 
-                ChipCard card = new ChipCard(card_id);
+                ChipCard card = new ChipCard(card_id.ToUpper().Trim());
                 var usr = _dbHelper.GetUser(card);
                 if (usr != null) 
                 {

@@ -1,5 +1,6 @@
 ﻿using System;
 using NLog;
+using com.IntemsLab.Common;
 
 namespace com.IntemsLab.Server
 {
@@ -11,8 +12,15 @@ namespace com.IntemsLab.Server
 
             try
             {
-                var devProc = new DeviceRequestProcessor(6767, "vend.db");
+                DatabaseHelper dbHelper = new DatabaseHelper("vend.db");
+                dbHelper.Start();
+
+                USBStickHandler usbHandler = new USBStickHandler(dbHelper);
+                DeviceRequestProcessor devProc = new DeviceRequestProcessor(6767, dbHelper, usbHandler);
+
+                usbHandler.Start();
                 devProc.Start();
+
                 while (true)
                 {
                     System.Threading.Thread.Sleep(500);

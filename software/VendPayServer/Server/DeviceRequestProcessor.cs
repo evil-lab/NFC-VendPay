@@ -37,29 +37,36 @@ namespace com.IntemsLab.Server
 
         private readonly Logger _log;
 
-        public DeviceRequestProcessor(int port, string databaseName)
+        public DeviceRequestProcessor(int port, DatabaseHelper dbHelper, USBStickHandler handler)
         {
-            _helper = new DatabaseHelper(databaseName);
-            _listener = new ProtocolListener(IPAddress.Any, port);
-
-            _parser = new RequestParser();
-            _builder = new ResponseBuilder();
-
-            //_log = LogManager.GetCurrentClassLogger();
             _log = LogManager.GetLogger("fileLogger");
 
+            handler.Configuring += OnConfiguring;
+            handler.Configured += OnConfigured;
+            _helper = dbHelper;
+
             _activeUserIds = new List<int>();
+
+            _listener = new ProtocolListener(IPAddress.Any, port);
+            _parser = new RequestParser();
+            _builder = new ResponseBuilder();
         }
 
         public void Start()
         {
             _activeUserIds.Clear();
 
-            _helper.Start();
+            if (!_listener.isRunning())
+                _listener.Start();
 
             _listener.Request += OnRequest;
             _listener.Error += OnError;
-            _listener.Start();
+        }
+
+        public void Stop()
+        {
+            _listener.Request -= OnRequest;
+            _listener.Error -= OnError;
         }
 
         private void OnError(object sender, ErrorEventArgs e)
@@ -92,6 +99,18 @@ namespace com.IntemsLab.Server
                     throw new ProtocolException(ProtocolError.InvalidCommand);
             }
 
+        }
+
+        private void OnConfiguring(object sender, EventArgs e)
+        {
+            _log.Debug("Configuring event started");
+            Stop();
+        }
+
+        private void OnConfigured(object sender, EventArgs e)
+        {
+            _log.Debug("Configurated event");
+            Start();
         }
 
         // request process methods
