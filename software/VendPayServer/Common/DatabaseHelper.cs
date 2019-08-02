@@ -11,7 +11,7 @@ namespace com.IntemsLab.Common
 {
     public class DatabaseHelper : IUserProcessor, IPayments, IDisposable
     {
-        private readonly string _databaseName = "vend_users.db";
+        private readonly string _databaseName;
         private readonly object _locker = new object();
 
         private const string ConnStringTemplate = "Data Source={0};Version=3;PRAGMA quick_check= NORMAL;";
@@ -181,7 +181,7 @@ namespace com.IntemsLab.Common
             {
                 if (user.Amount >= price)
                 {
-                    var newAmount = (int) (user.Amount - price);
+                    var newAmount = (int)(user.Amount - price);
                     UpdateAmount(userId, newAmount);
                     SavePurchase(userId, price, productId);
                 }
@@ -193,7 +193,7 @@ namespace com.IntemsLab.Common
             var user = GetUserById(userId);
             if (user != null)
             {
-                var newAmount = (int) (user.Amount + value);
+                var newAmount = (int)(user.Amount + value);
                 UpdateAmount(userId, newAmount);
             }
         }
@@ -229,7 +229,7 @@ namespace com.IntemsLab.Common
 
         public void SaveConfig(int balance, string updateTime)
         {
-            lock(_locker)
+            lock (_locker)
             {
                 using (var cmd = new SqliteCommand(_connection)) {
                     const string sqlTemplate = "INSERT INTO [Config] ([balance], [updateTime])" +
@@ -261,6 +261,72 @@ namespace com.IntemsLab.Common
                         var updateTime = reader.GetString(2);
 
                         result = new Tuple<int, string>(balance, updateTime);
+                    }
+                }
+            }
+            return result;
+        }
+
+        public List<Tuple<string, int, int, string>> GetReport(string sTime)
+        {
+            List <Tuple<string, int, int, string>> result = new List<Tuple<string, int, int, string>>();
+            lock (_locker)
+            {
+                using (var cmd = new SqliteCommand(_connection))
+                {
+                    const string sqlQryTempl = @"SELECT [User].[cardId], [Purchase].[cellId], [Purchase].[value], [Purchase].[date] " +
+                    "FROM [Purchase] LEFT JOIN [User] " +
+                    "ON [Purchase].[userId] = [User].[id] WHERE [Purchase].[date] >= '{0}'";
+                    var sCmd = String.Format(sqlQryTempl, sTime);
+                    cmd.CommandText = sCmd;
+                    cmd.CommandType = CommandType.Text;
+
+                    var reader = cmd.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        var cardId = reader.GetString(0);
+                        var cellID = reader.GetInt32(1);
+                        var price = reader.GetInt32(2);
+                        var date = reader.GetString(3);
+
+                        result.Add(new Tuple<string, int, int, string>(cardId, cellID, price, date));
+                    }
+                }
+            }
+            return result;
+        }
+        
+        public void SaveReportLog()
+        {
+            lock (_locker)
+            {
+                using (var cmd = new SqliteCommand(_connection))
+                {
+                    const string sqlTemplate = "INSERT INTO [ReportLog] ([reportTime]) " +
+                                              "VALUES ('{0}')";
+                    var sCmd = String.Format(sqlTemplate, DateTime.Now.ToString("u"));
+                    cmd.CommandText = sCmd;
+                    cmd.CommandType = CommandType.Text;
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public string GetLastReportLog() 
+        {
+            string result = null;
+            lock (_locker)
+            {
+                using (var cmd = new SqliteCommand(_connection))
+                {
+                    const string sqlQryTempl = @"SELECT * FROM ReportLog ORDER BY [id] DESC LIMIT 1";
+                    cmd.CommandText = String.Format(sqlQryTempl);
+                    cmd.CommandType = CommandType.Text;
+
+                    var reader = cmd.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        result = reader.GetString(1);
                     }
                 }
             }
@@ -332,6 +398,11 @@ namespace com.IntemsLab.Common
                                         [id] integer PRIMARY KEY AUTOINCREMENT NOT NULL,
                                         [balance] integer,
                                         [updateTime] char(25));";
+                    cmd.ExecuteNonQuery();
+
+                    cmd.CommandText = @"CREATE TABLE [ReportLog] (
+                                        [id] integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+                                        [reportTime] char(25));";
                     cmd.ExecuteNonQuery();
                 }
             } 

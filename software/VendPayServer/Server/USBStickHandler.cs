@@ -7,6 +7,7 @@ using com.IntemsLab.Common;
 using com.IntemsLab.Common.Model;
 using NLog;
 using System.Text.RegularExpressions;
+using System.Globalization;
 
 namespace com.IntemsLab.Server
 {
@@ -14,8 +15,9 @@ namespace com.IntemsLab.Server
     {
         private DatabaseHelper _dbHelper;
         private bool _isProcessing;
-        private string _baseDir = "/mnt/vend_pay";
-        private string[] _configFiles = { "cards.csv", "balance.csv" };
+        //private string _baseDir = "/mnt/vend_pay";
+        private string _baseDir = "/media/vladimir/aaea4d95-5934-456e-b843-eaaee125cb54/";
+        private string[] _configFiles = { "cards.csv", "balance.csv"};
         private readonly Logger _log;
 
         public event EventHandler Configuring;
@@ -49,6 +51,14 @@ namespace com.IntemsLab.Server
                 {
                     Configuring?.Invoke(this, EventArgs.Empty);
                     GetBalance(balanceFile);
+                    Configured?.Invoke(this, EventArgs.Empty);
+                }
+
+                if(Directory.Exists(_baseDir))
+                {
+                    Configuring?.Invoke(this, EventArgs.Empty);
+                    SaveCSVReport();
+                    _dbHelper.SaveReportLog(); 
                     Configured?.Invoke(this, EventArgs.Empty);
                 }
                 System.Threading.Thread.Sleep(1000);
@@ -103,6 +113,40 @@ namespace com.IntemsLab.Server
                     _log.Debug("INCORRECT balance: {0}, time: {1}", s_balance, time);
                 }
             }
+        }
+
+        private void SaveCSVReport()
+        {
+            // get last config time 
+            string lastReportLogTime = _dbHelper.GetLastReportLog();
+            // check if last config time is null
+            if (lastReportLogTime == null)
+                lastReportLogTime = "2000-01-01 00:00:00Z";
+            
+            _log.Debug("ReportLog: last report log time is: {0}", lastReportLogTime);
+            var data = _dbHelper.GetReport(lastReportLogTime);
+            if (data.Count > 0)
+            {
+                try
+                {
+                    // DateTime dt = DateTime.Now.ToString("u"); 
+                    string reportFile = Path.Combine(_baseDir, String.Format("report {0}.csv", DateTime.Now.ToString("u")));
+                    List<string[]> lines = new List<string[]>();
+                    foreach (var tpl in data)
+                    {
+                        lines.Add(new string[] { tpl.Item1, tpl.Item2.ToString(), tpl.Item3.ToString(), tpl.Item4 });
+                    }
+                    using (TextWriter writer = new StreamWriter(File.OpenWrite(reportFile)))
+                    {
+                        CsvWriter.Write(writer, new string[] { "cardId", "cellId", "price", "date" }, lines);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _log.Debug("!!! SaveCSVReport: exc: {0}", ex.Message);
+                }
+            }
+            
         }
 
         private void GetCards(string cardsFile)
