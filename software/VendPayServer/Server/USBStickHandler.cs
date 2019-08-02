@@ -15,18 +15,21 @@ namespace com.IntemsLab.Server
     {
         private DatabaseHelper _dbHelper;
         private bool _isProcessing;
-        //private string _baseDir = "/mnt/vend_pay";
-        private string _baseDir = "/media/vladimir/aaea4d95-5934-456e-b843-eaaee125cb54/";
+        private string _baseDir;
+        private string _reportArchivesDir;
         private string[] _configFiles = { "cards.csv", "balance.csv"};
         private readonly Logger _log;
 
         public event EventHandler Configuring;
         public event EventHandler Configured;
 
-        public USBStickHandler(DatabaseHelper dbHelper)
+        public USBStickHandler(DatabaseHelper dbHelper, string baseDir, string reportArchiveDir)
         {
-            _log = LogManager.GetLogger("fileLogger");
+            _baseDir = baseDir;
+            _reportArchivesDir = reportArchiveDir;
             _dbHelper = dbHelper;
+
+            _log = LogManager.GetLogger("fileLogger"); 
             _isProcessing = true;
         }
 
@@ -129,8 +132,8 @@ namespace com.IntemsLab.Server
             {
                 try
                 {
-                    // DateTime dt = DateTime.Now.ToString("u"); 
                     string reportFile = Path.Combine(_baseDir, String.Format("report {0}.csv", DateTime.Now.ToString("u")));
+                    string reportArchiveDir = Path.Combine(_reportArchivesDir, String.Format("report {0}.csv", DateTime.Now.ToString("u")));
                     List<string[]> lines = new List<string[]>();
                     foreach (var tpl in data)
                     {
@@ -140,10 +143,15 @@ namespace com.IntemsLab.Server
                     {
                         CsvWriter.Write(writer, new string[] { "cardId", "cellId", "price", "date" }, lines);
                     }
+                    // duplicate localy
+                    using (TextWriter writer = new StreamWriter(File.OpenWrite(reportArchiveDir)))
+                    {
+                        CsvWriter.Write(writer, new string[] { "cardId", "cellId", "price", "date" }, lines);
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _log.Debug("!!! SaveCSVReport: exc: {0}", ex.Message);
+                    _log.Error("SaveCSVReport() | Message:{0}", ex.Message);
                 }
             }
             

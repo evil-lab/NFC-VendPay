@@ -1,6 +1,7 @@
 ﻿using System;
 using NLog;
 using com.IntemsLab.Common;
+using System.Configuration;
 
 namespace com.IntemsLab.Server
 {
@@ -15,7 +16,12 @@ namespace com.IntemsLab.Server
                 DatabaseHelper dbHelper = new DatabaseHelper("vend.db");
                 dbHelper.Start();
 
-                USBStickHandler usbHandler = new USBStickHandler(dbHelper);
+                Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                var usbDir = config.AppSettings.Settings["UsbDir"].Value;
+                var archiveDir = config.AppSettings.Settings["ReportArchives"].Value;
+
+
+                USBStickHandler usbHandler = new USBStickHandler(dbHelper, usbDir, archiveDir);
                 DeviceRequestProcessor devProc = new DeviceRequestProcessor(6767, dbHelper, usbHandler);
 
                 usbHandler.Start();
