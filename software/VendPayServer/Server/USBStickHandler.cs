@@ -8,6 +8,7 @@ using com.IntemsLab.Common.Model;
 using NLog;
 using System.Text.RegularExpressions;
 using System.Globalization;
+using System.Threading;
 
 namespace com.IntemsLab.Server
 {
@@ -35,7 +36,8 @@ namespace com.IntemsLab.Server
 
         public void Start()
         {
-            Processing();
+            Thread thread = new Thread(this.Processing) { IsBackground = true };
+            thread.Start();
         }
 
         private void Processing()
@@ -44,36 +46,32 @@ namespace com.IntemsLab.Server
             {
                 var cardsFile = Path.Combine(_baseDir, _configFiles[0]);
                 var balanceFile = Path.Combine(_baseDir, _configFiles[1]);
-                if (File.Exists(cardsFile))
-                {
-                    Configuring?.Invoke(this, EventArgs.Empty);
-                    GetCards(cardsFile);
-                    Configured?.Invoke(this, EventArgs.Empty);
-                }
-                if(File.Exists(balanceFile))
-                {
-                    Configuring?.Invoke(this, EventArgs.Empty);
-                    GetBalance(balanceFile);
-                    Configured?.Invoke(this, EventArgs.Empty);
-                }
-
-                if(Directory.Exists(_baseDir))
+                if (Directory.Exists(_baseDir))
                 {
                     Configuring?.Invoke(this, EventArgs.Empty);
                     SaveCSVReport();
-                    _dbHelper.SaveReportLog(); 
+                    _dbHelper.SaveReportLog();
+
+                    if (File.Exists(cardsFile))
+                    {
+                        GetCards(cardsFile);
+                    }
+                    if (File.Exists(balanceFile))
+                    {
+                        GetBalance(balanceFile);
+                    }
                     Configured?.Invoke(this, EventArgs.Empty);
                 }
                 System.Threading.Thread.Sleep(1000);
             }
         }
 
-        public bool IsValidTime(string t)
+        private bool IsValidTime(string t)
         {
             return System.Text.RegularExpressions.Regex.IsMatch(t, @"^([01]\d?|2[0-4]):[0-5]\d(:[0-5]\d)?$");
         }
 
-        public bool OnlyHexInString(string test)
+        private bool OnlyHexInString(string test)
         {
             return System.Text.RegularExpressions.Regex.IsMatch(test, @"\A\b[0-9a-fA-F]+\b\Z");
         }

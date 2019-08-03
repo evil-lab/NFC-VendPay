@@ -56,11 +56,9 @@ namespace com.IntemsLab.Server
         {
             _activeUserIds.Clear();
 
-            if (!_listener.isRunning())
-                _listener.Start();
-
             _listener.Request += OnRequest;
             _listener.Error += OnError;
+            _listener.Start();
         }
 
         public void Stop()
@@ -124,7 +122,7 @@ namespace com.IntemsLab.Server
                 var user = _helper.GetUser(card);
                 if(user != null)
                 {
-                    _log.Debug("User ID:{0}  |  CardID:{1}", user.Id, user.AssignedCard);
+                    _log.Debug("User ID:{0}  CardID:{1}", user.Id, user.AssignedCard);
                     if (!_activeUserIds.Contains(user.Id))
                     {
                         _activeUserIds.Add(user.Id);

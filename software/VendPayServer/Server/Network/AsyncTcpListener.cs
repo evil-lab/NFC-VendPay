@@ -8,9 +8,9 @@ namespace com.IntemsLab.Server.Network
     public abstract class AsyncTcpListener
     {
         private readonly Thread _acceptorThread;
+        private volatile bool _exitFlag;
         private readonly IPAddress _ipAddress;
         private readonly int _port;
-        private volatile bool _exitFlag;
 
         protected AsyncTcpListener(IPAddress ipAddress, int port)
         {

@@ -2,6 +2,7 @@
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using NLog;
 using com.IntemsLab.Communication;
 using com.IntemsLab.Communication.Protocol;
 
@@ -12,8 +13,11 @@ namespace com.IntemsLab.Server.Network
         private const int BufferSize = 4096;
         private const int ReadTimeout = 3000;
 
+        private Logger _log;
+
         public ProtocolListener(IPAddress ipAddress, int port) : base(ipAddress, port)
         {
+            _log = LogManager.GetLogger("fileLogger");
         }
 
         private static ResponseFrame CreateError(byte address, byte frameIndex, byte commandCode, ProtocolError error)
@@ -23,25 +27,23 @@ namespace com.IntemsLab.Server.Network
 
         private static ResponseFrame CreateError(ProtocolError error)
         {
-            Console.WriteLine("Protocol Error. Code: " + error.Code);
             return new ResponseFrame(0, 0xFF, 0xFF, error.Code, null);
         }
 
         protected ResponseFrame CreateResponse(RequestFrame request)
         {
-            var pea = new ProtocolEventArgs(request);
-            this.Request.Fire(this, pea);
-            return pea.Response;
+            var args = new ProtocolEventArgs(request);
+            // Notify listeners: DeviceRequestProcessor (executed in current thread)
+            this.Request.Fire(this, args);
+            return args.Response;
         }
-
-        public event EventHandler<ErrorEventArgs> Error;
 
         protected override void OnAccept(TcpClient client)
         {
+            _log.Debug("OnAccept() | Message received.");
             using (var stream = client.GetStream())
             {
-                //Засерает консоль!!!
-                Console.WriteLine("Create UnknownError forward!!!");
+                //TODO:Засерает консоль!!!
                 var response = CreateError(ProtocolError.UnknownError);
                 try
                 {
@@ -52,7 +54,8 @@ namespace com.IntemsLab.Server.Network
                     }
                     catch (ProtocolException exc)
                     {
-                        Console.WriteLine("Create error occured: {0}", exc.Error);
+                        _log.Error("ProtocolListener.OnAccept() | Response creation error: {0}", exc.Message);
+                        _log.Error("ProtocolListener.OnAccept() | Stack trace: {0}\n", exc.StackTrace);
                         response = CreateError(request.Address, request.FrameIndex, request.CommandCode, exc.Error);
                     }
                 }
@@ -74,6 +77,8 @@ namespace com.IntemsLab.Server.Network
                 }
             }
         }
+
+        public event EventHandler<ErrorEventArgs> Error;
 
         protected override void OnError(Exception exc)
         {
